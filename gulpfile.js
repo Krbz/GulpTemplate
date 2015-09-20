@@ -7,9 +7,10 @@ var gulp = require('gulp'),
     plumber = require('gulp-plumber'),
     connect = require('gulp-connect'),
     concat = require('gulp-concat'),
+    clean = require('gulp-clean'),
     uglify = require('gulp-uglify'),
     minifyCss = require('gulp-minify-css'),
-    sass = require('gulp-sass');
+    sass = require('gulp-sass'),
     babel = require('gulp-babel');
 
 
@@ -56,7 +57,8 @@ gulp.task('minify:styles', function() {
         .pipe(concat('style.min.css'))
         .pipe(minifyCss())
         .pipe(gulp.dest('public/css'))
-        .on('error', handleError);
+        .on('error', handleError)
+        .pipe(connect.reload());
 });
 
 gulp.task('scripts', function () {
@@ -75,7 +77,8 @@ gulp.task('minify:scripts', function() {
         .pipe(concat('app.min.js'))
         .pipe(uglify())
         .pipe(gulp.dest('public/js'))
-        .on('error', handleError);
+        .on('error', handleError)
+        .pipe(connect.reload());
 });
 
 gulp.task('html', function () {
@@ -87,25 +90,32 @@ gulp.task('html', function () {
 
 });
 
+gulp.task('clean', function() {
+    gulp.src('public/*', {read: false})
+        .pipe(clean({force: true}));
+})
+
 gulp.task('watch', ['build', 'connect'], function () {
-
-    gulp.watch('src/styles/*.scss', ['styles']);
-    gulp.watch(['src/js/*.js'], ['scripts']);
+    gulp.watch('src/styles/*/*.scss', ['styles', 'minify:styles']);
+    gulp.watch('src/js/*.js', ['scripts', 'minify:scripts']);
 	gulp.watch('src/views/*.html', ['prettify']);
-
 });
 
 gulp.task('connect', function () {
     connect.server({
         root: ['public'],
-        port: 4242,
+        port: 8080,
         livereload: true
     })
 });
+gulp.task('minify', function() {
+    gulp.run(['minify:styles', 'minify:scripts'])
+})
 gulp.task('build', function () {
-    gulp.run([ 'styles', 'minify:styles', 'scripts', 'minify:scripts', 'prettify'])
+    gulp.run(['styles', 'scripts', 'prettify']);
+    //cant build assets and minify it
+    //gulp.rin(['minify']) - doesnt work (guess: cause in public there is no files when its run)
 });
-gulp.task('default', function () {
-    gulp.run('build');
-    gulp.run('watch');
+gulp.task('default', ['clean'], function () {
+    gulp.run(['build', 'watch']);
 });
